@@ -23,9 +23,13 @@ public abstract class APIController extends HttpServlet {
 
         final HttpSession session = request.getSession();
         for (final String name : names) {
-            final String value = (String) request.getParameter(name);
-            if (value != null) {
-                session.setAttribute(name, value);
+            final String[] values = (String[]) request.getParameterValues(name);
+
+            if (values != null && !name.matches("^.*\\Q[\\E.*\\Q]\\E$")) {
+                if (values.length == 1)
+                    session.setAttribute(name, values[0]);
+                else
+                    session.setAttribute(name, values);
             }
         }
     }
@@ -50,7 +54,8 @@ public abstract class APIController extends HttpServlet {
                 final String clientId = cfg.getClientId();
                 final String clientSecret = cfg.getClientSecret();
                 final OAuthService service = new OAuthService(
-                        appConfig.getOauthFQDN(), clientId, clientSecret);
+                        appConfig.getOauthFQDN(), clientId, clientSecret,
+                        Long.parseLong(appConfig.getProperty("tokenExpireSeconds")));
 
                 token = service.getToken(cfg.getProperty("scope"));
                 token.saveToken(tokenFile);
@@ -78,7 +83,8 @@ public abstract class APIController extends HttpServlet {
         final String code = (String) request.getParameter("code");
         if (code != null) {
             final OAuthService service = new OAuthService(
-                    appConfig.getOauthFQDN(), clientId, clientSecret);
+                    appConfig.getOauthFQDN(), clientId, clientSecret,
+                    Long.parseLong(appConfig.getProperty("tokenExpireSeconds")));
             token = service.getTokenUsingCode(code);
             session.setAttribute("token", token);
             return token;
@@ -86,7 +92,7 @@ public abstract class APIController extends HttpServlet {
 
         final String scope = appConfig.getProperty("scope");
         final String redirectUri = appConfig.getProperty("redirectUri");
-        final String redirect = FQDN + "/oauth/authorize?client_id=" + 
+        final String redirect = FQDN + "/oauth/v4/authorize?client_id=" +
             clientId + "&scope=" + scope + "&redirect_uri=" + redirectUri; 
 
         try {

@@ -1,15 +1,19 @@
 /* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4 */
 
 /*
- * ====================================================================
- * LICENSE: Licensed by AT&T under the 'Software Development Kit Tools
- * Agreement.' 2013.
- * TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTIONS:
- * http://developer.att.com/sdk_agreement/
+ * Copyright 2014 AT&T
  *
- * Copyright 2013 AT&T Intellectual Property. All rights reserved.
- * For more information contact developer.support@att.com
- * ====================================================================
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.att.api.rest;
@@ -31,6 +35,9 @@ public class RESTConfig {
 
     /** Default setting for accepting ssl certificates. */
     private static boolean defaultTrustAllCerts = false;
+    
+    /** Default client sdk to use, if any. */
+    private static String defaultClientSdk = null;
 
     /** Url to use for RESTFul request. */
     private final String url;
@@ -40,6 +47,9 @@ public class RESTConfig {
 
     /** Proxy host to use or <tt>null</tt> if none. */
     private final String proxyHost;
+    
+    /** ClientSdk to set for all api calls */
+    private final String clientSdk;
 
     /** Proxy port to use or -1 if none. */
     private final int proxyPort;
@@ -107,6 +117,7 @@ public class RESTConfig {
         this.proxyHost = proxyHost;
         this.proxyPort = proxyPort;
         this.trustAllCerts = trustAllCerts;
+        this.clientSdk = this.defaultClientSdk;
     }
 
     /**
@@ -137,6 +148,15 @@ public class RESTConfig {
     }
 
     /**
+     * Get client sdk value to use or null if none.
+     *
+     * @return clientSdk to use
+     */
+    public String getClientSdk() {
+        return this.clientSdk;
+    }    
+    
+    /**
      * Gets proxy port to use or -1 if none.
      *
      * @return proxy port to use
@@ -157,6 +177,15 @@ public class RESTConfig {
         RESTConfig.defaultProxyPort = port;
     }
 
+    /**
+     * Sets the default clientSdk to use
+     *
+     * @param clientSdkValue
+     */
+    public static synchronized void setDefaultClientSdk(String clientSdkValue) {
+        RESTConfig.defaultClientSdk = clientSdkValue;
+    }   
+    
     /**
      * Sets the default ssl certificate setting to use if none is specified
      * during object creation.

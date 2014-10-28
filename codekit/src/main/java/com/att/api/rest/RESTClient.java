@@ -1,15 +1,19 @@
 /* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4 */
 
 /*
- * ====================================================================
- * LICENSE: Licensed by AT&T under the 'Software Development Kit Tools
- * Agreement.' 2013.
- * TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTIONS:
- * http://developer.att.com/sdk_agreement/
+ * Copyright 2014 AT&T
  *
- * Copyright 2013 AT&T Intellectual Property. All rights reserved.
- * For more information contact developer.support@att.com
- * ====================================================================
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.att.api.rest;
@@ -330,6 +334,9 @@ public class RESTClient {
      */
     public RESTClient(RESTConfig cfg) throws RESTException {
         this.headers = new HashMap<String, List<String>>();
+        if(cfg.getClientSdk() != null) {
+        	this.setHeader("X-Arg", cfg.getClientSdk());
+        }
         this.parameters = new HashMap<String, List<String>>();
         this.url = cfg.getURL();
         this.trustAllCerts = cfg.trustAllCerts();
@@ -350,6 +357,10 @@ public class RESTClient {
      * @return a reference to 'this', which can be used for method chaining
      */
     public RESTClient addParameter(String name, String value) {
+        if (name == null || value == null) {
+            throw new IllegalArgumentException("Name or value was null!");
+        }
+
         if (!parameters.containsKey(name)) {
             parameters.put(name, new ArrayList<String>());
         }
@@ -486,6 +497,31 @@ public class RESTClient {
 
             APIResponse apiResponse = buildResponse(response);
             return apiResponse;
+        } catch (IOException ioe) {
+            throw new RESTException(ioe);
+        } finally {
+            if (response != null) {
+                this.releaseConnection(response);
+            }
+        }
+    }
+
+    public HttpResponse httpGetAndReturnRawResponse() throws RESTException {
+        HttpClient httpClient = null;
+        HttpResponse response = null;
+
+        try {
+            httpClient = createClient();
+
+            String query = "";
+            if (!buildQuery().equals("")) {
+                query = "?" + buildQuery();
+            }
+            HttpGet httpGet = new HttpGet(url + query);
+            addInternalHeaders(httpGet);
+
+            return httpClient.execute(httpGet);
+
         } catch (IOException ioe) {
             throw new RESTException(ioe);
         } finally {
@@ -700,7 +736,7 @@ public class RESTClient {
 
             HttpPost httpPost = new HttpPost(url);
             this.setHeader("Content-Type",
-                    "multipart/form-data; type=\"application/json\"; "
+                    "multipart/related; type=\"application/json\"; "
                     + "start=\"<startpart>\"; boundary=\"foo\"");
             addInternalHeaders(httpPost);
 
@@ -828,11 +864,42 @@ public class RESTClient {
         try {
             httpClient = createClient();
 
-            HttpDelete httpDelete = new HttpDelete(this.url);
+            String query = "";
+            if (!buildQuery().equals("")) {
+                query = "?" + buildQuery();
+            }
+            HttpDelete httpDelete = new HttpDelete(this.url + query);
 
             addInternalHeaders(httpDelete);
 
             response = httpClient.execute(httpDelete);
+
+            APIResponse apiResponse = buildResponse(response);
+            return apiResponse;
+        } catch (IOException ioe) {
+            throw new RESTException(ioe);
+        } finally {
+            if (response != null) {
+                this.releaseConnection(response);
+            }
+        }
+    }
+
+    public APIResponse httpPatch(String body) throws RESTException {
+        HttpClient httpClient = null;
+        HttpResponse response = null;
+
+        try {
+            httpClient = createClient();
+
+            HttpPatch httpPatch = new HttpPatch(this.url);
+
+            addInternalHeaders(httpPatch);
+            if (body != null && !body.equals("")) {
+                httpPatch.setEntity(new StringEntity(body));
+            }
+
+            response = httpClient.execute(httpPatch);
 
             APIResponse apiResponse = buildResponse(response);
             return apiResponse;
